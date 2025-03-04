@@ -111,26 +111,41 @@ def fill_sale_order_template_line_sections(cr):
         ALTER COLUMN product_uom_id DROP not null
         """,
     )
-    openupgrade.logged_query(
-        cr, """
-        INSERT INTO sale_order_template_line (sale_order_template_id,
-            layout_category_id, sequence, name, price_unit, product_uom_qty,
-            display_type, create_uid, create_date, write_uid, write_date)
-        SELECT sotl.sale_order_template_id, sotl.layout_category_id,
-            min(sotl.sequence) - 1 as sequence, max(COALESCE(slc.name, ' ')),
-            0, 0, 'line_section', min(sotl.create_uid), min(sotl.create_date),
-            min(sotl.write_uid), min(sotl.write_date)
-        FROM sale_order_template_line sotl
-        LEFT JOIN sale_layout_category slc ON slc.id = sotl.layout_category_id
-        WHERE sotl.sale_order_template_id IN (
-            SELECT sale_order_template_id
-            FROM sale_order_template_line
-            WHERE layout_category_id IS NOT NULL)
-        GROUP BY sale_order_template_id, layout_category_id
-        ORDER BY sale_order_template_id, layout_category_id, sequence
-        """
-    )
-
+    # openupgrade.logged_query(
+    #     cr, """
+    #     INSERT INTO sale_order_template_line (sale_order_template_id,
+    #         layout_category_id, sequence, name, price_unit, product_uom_qty,
+    #         display_type, create_uid, create_date, write_uid, write_date)
+    #     SELECT sotl.sale_order_template_id, sotl.layout_category_id,
+    #         min(sotl.sequence) - 1 as sequence, max(COALESCE(slc.name, ' ')),
+    #         0, 0, 'line_section', min(sotl.create_uid), min(sotl.create_date),
+    #         min(sotl.write_uid), min(sotl.write_date)
+    #     FROM sale_order_template_line sotl
+    #     LEFT JOIN sale_layout_category slc ON slc.id = sotl.layout_category_id
+    #     WHERE sotl.sale_order_template_id IN (
+    #         SELECT sale_order_template_id
+    #         FROM sale_order_template_line
+    #         WHERE layout_category_id IS NOT NULL)
+    #     GROUP BY sale_order_template_id, layout_category_id
+    #     ORDER BY sale_order_template_id, layout_category_id, sequence
+    #     """
+    # )
+    # Insert layout categories that are not in the sale_order_template_line
+    # TODO: (PJ): Need to handle case where there is already a sale_order_template_id 
+    # which matches the layout_category_id. Also set display_type based on pagebreak
+    # openupgrade.logged_query(
+    #     cr, """
+    #     INSERT INTO sale_order_template_line (sale_order_template_id,
+    #         layout_category_id, sequence, name, price_unit, product_uom_qty,
+    #         display_type, create_uid, create_date, write_uid, write_date)
+    #     SELECT slc.id, slc.id, slc.sequence, slc.name, 0, 0, 'line_section',
+    #         slc.create_uid, slc.create_date, slc.write_uid, slc.write_date
+    #     FROM sale_layout_category slc where slc.id NOT IN (
+    #         SELECT layout_category_id
+    #         FROM sale_order_template_line
+    #         WHERE layout_category_id IS NOT NULL)
+    #     """
+    # )
 
 @openupgrade.migrate()
 def migrate(env, version):

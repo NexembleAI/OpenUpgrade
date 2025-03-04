@@ -122,11 +122,14 @@ def exec_pg_environ():
 def exec_pg_command(name, *args):
     prog = find_pg_tool(name)
     env = exec_pg_environ()
+    _logger.info('Postgres subprocess %s %s', prog, args)
     with open(os.devnull) as dn:
         args2 = (prog,) + args
-        rc = subprocess.call(args2, env=env, stdout=dn, stderr=subprocess.STDOUT)
-        if rc:
-            raise Exception('Postgres subprocess %s error %s' % (args2, rc))
+        # rc = subprocess.call(args2, env=env, stdout=dn, stderr=subprocess.STDOUT)
+        proc = subprocess.run(args2, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if proc.returncode != 0:
+            _logger.error('Postgres subprocess rc %s, error %s', proc.returncode, proc.stderr)
+            raise Exception('Postgres subprocess %s error %s' % (args2, proc.returncode))
 
 def exec_pg_command_pipe(name, *args):
     prog = find_pg_tool(name)

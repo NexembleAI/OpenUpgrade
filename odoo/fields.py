@@ -587,6 +587,8 @@ class Field(MetaField('DummyField', (object,), {})):
         # determine the chain of fields, and make sure they are all set up
         target = model
         for name in self.related:
+            if name not in target._fields:
+                _logger.info(f"Target model {target._name} does not have field {name}: {target._fields}")
             field = target._fields[name]
             field.setup_full(target)
             target = target[name]
@@ -2522,6 +2524,9 @@ class One2many(_RelationalMulti):
         if self.inverse_name:
             # link self to its inverse field and vice-versa
             comodel = model.env[self.comodel_name]
+            _logger.info(f"Comodel name {self.comodel_name} for model {model._name} with inverse {self.inverse_name}")
+            if self.inverse_name not in comodel._fields:
+                _logger.debug(f"Field {self.inverse_name} not in comodel {self.comodel_name}, fields: {comodel._fields}")
             invf = comodel._fields[self.inverse_name]
             # In some rare cases, a ``One2many`` field can link to ``Int`` field
             # (res_model/res_id pattern). Only inverse the field if this is

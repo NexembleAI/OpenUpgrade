@@ -466,6 +466,8 @@ class IrModelFields(models.Model):
         """ Return the ``Field`` instance corresponding to ``self.related``. """
         names = self.related.split(".")
         last = len(names) - 1
+        _logger.info(f"Model {self.model} ({self.model_id.model}), related: {self.related}")
+        _logger.info(f"env: {self.env.keys()}")
         model = self.env[self.model or self.model_id.model]
         for index, name in enumerate(names):
             field = model._fields.get(name)

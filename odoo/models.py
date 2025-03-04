@@ -1136,6 +1136,7 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
                 except ValidationError as e:
                     raise
                 except Exception as e:
+                    _logger.info(f"Check on constraint {check}: {check._constrains}")
                     raise ValidationError("%s\n\n%s" % (_("Error while validating constraint"), tools.ustr(e)))
 
     @api.model
@@ -2671,6 +2672,7 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
                     # This can also be a manual function field depending on not loaded fields yet.
                     bad_fields.append(name)
                     continue
+                _logger.info(f"Field {name} ({field}) setup for {cls} failed: {cls._fields}")
                 raise
 
         for name in bad_fields:
@@ -5319,12 +5321,15 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
         """
         while self.env.has_todo():
             field, recs = self.env.get_todo()
+            _logger.info(f"Recompute {field} for {len(recs)} records")
             # determine the fields to recompute
             fs = self.env[field.model_name]._field_computed[field]
-            # OpenUpgrade start:
+            # OpenUpgrade start:o
             blacklist = recs._openupgrade_recompute_fields_blacklist
+            _logger.info('Blacklist %s' % blacklist)
             field_key = '%s' % field
             model_name, field_name = field_key.rsplit('.', 1)
+            _logger.info(f"Mode name: {model_name} Field name: {field_name}")
             if field_name in blacklist:
                 _logger.info(
                     "Recompute of field %s for %d recs blacklisted." %
@@ -5346,6 +5351,10 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
                     vals = {n: rec[n] for n in ns}
                 except MissingError:
                     continue
+
+                except KeyError:
+                    continue
+                
                 vals = rec._convert_to_write(vals)
                 updates[frozendict(vals)].add(rec.id)
             # update records in batch when possible

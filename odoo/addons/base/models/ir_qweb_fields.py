@@ -141,6 +141,18 @@ class FieldConverter(models.AbstractModel):
         return self.env['res.lang']._lang_get(lang_code)
 
 
+class CharConverter(models.AbstractModel):
+    _name = 'ir.qweb.field.char'
+    _description = 'Qweb Field Char'
+    _inherit = 'ir.qweb.field'
+
+    @api.model
+    def value_to_html(self, value, options):
+        """
+        """
+        return html_escape(value, options) if value else ''
+
+
 class IntegerConverter(models.AbstractModel):
     _name = 'ir.qweb.field.integer'
     _description = 'Qweb Field Integer'

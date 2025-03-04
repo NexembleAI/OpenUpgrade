@@ -209,6 +209,8 @@ class IrHttp(models.AbstractModel):
             if isinstance(result, Exception):
                 raise result
         except Exception as e:
+            _logger.error(f"Error calling func {func} ({func.method}) with args {arguments} and auth {auth_method}: {e}")
+            _logger.exception(e)
             return cls._handle_exception(e)
 
         return result

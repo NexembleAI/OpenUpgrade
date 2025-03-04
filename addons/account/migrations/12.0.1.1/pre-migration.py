@@ -107,6 +107,22 @@ def fill_account_invoice_line_sections(cr):
         ORDER BY invoice_id, layout_category_id, sequence
         """
     )
+    # Insert layout categories that are not in the sale_order_template_line
+    # TODO: (PJ): Need to handle case where there is already a sale_order_template_id 
+    # which matches the layout_category_id. Also set display_type based on pagebreak
+    # openupgrade.logged_query(
+    #     cr, """
+    #     INSERT INTO sale_order_template_line (sale_order_template_id,
+    #         layout_category_id, sequence, name, price_unit, product_uom_qty,
+    #         display_type, create_uid, create_date, write_uid, write_date)
+    #     SELECT slc.id, slc.id, slc.sequence, slc.name, 0, 0, 'line_section',
+    #         slc.create_uid, slc.create_date, slc.write_uid, slc.write_date
+    #     FROM sale_layout_category slc where slc.id NOT IN (
+    #         SELECT layout_category_id
+    #         FROM sale_order_template_line
+    #         WHERE layout_category_id IS NOT NULL)
+    #     """
+    # )
 
 
 def prefill_account_chart_template_transfer_account_prefix(env):

@@ -62,17 +62,18 @@ def _move_model_in_data(env, ids, old_model, new_model):
 
 def fill_hr_leave(env):
     # In pre-migration the hr_leave table still doesn't exist
+    # Removed manager id as it is char in the custom addon and will be recomputed
     openupgrade.logged_query(
         env.cr, """
         INSERT INTO hr_leave (
             id, category_id, date_from, date_to, department_id,
             employee_id, first_approver_id, holiday_status_id, holiday_type,
-            manager_id, meeting_id, name, notes, number_of_days,
+            meeting_id, name, notes, number_of_days,
             payslip_status, report_note, second_approver_id, state, user_id,
             create_uid, create_date, write_uid, write_date
         )
         SELECT id, category_id, date_from, date_to, department_id, employee_id,
-            first_approver_id, holiday_status_id, holiday_type, manager_id,
+            first_approver_id, holiday_status_id, holiday_type,
             meeting_id, name, notes, number_of_days, payslip_status,
             report_note, second_approver_id, state, user_id, create_uid,
             create_date, write_uid, write_date

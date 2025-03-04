@@ -272,6 +272,7 @@ class QWeb(object):
               profile line with time ms >= profile)
         """
         body = []
+        _logger.info(f"Template {template} compile with values {values} and options {options}")
         self.compile(template, options)(self, body.append, values or {})
         return u''.join(body).encode('utf8')
 
@@ -352,6 +353,27 @@ class QWeb(object):
                 path = log['last_path_node']
                 element, document = self.get_template(template, options)
                 node = element.getroottree().xpath(path) if ':' not in path else None
+                _logger.error(f"compiled: {compiled}, path {path}, node {etree.tostring(node[0], encoding='unicode')}, element {etree.tostring(element, encoding='unicode')}, template {template}")
+                # import inspect
+                # try:
+                #     f = inspect.getsource(compiled)
+                
+                # except Exception as exp:
+                #     _logger.error(f"Error decompiling: {exp}")
+                #     f = None
+                _logger.error(f"function: {[ast.dump(n) for n in body]}")
+                _logger.error(f"ast: {astmod.body}")
+
+                class PrintFunctionTypes(ast.NodeVisitor):
+                    def visit_FunctionDef(self, f):
+                        _logger.info('FunctionDef:\n' + ast.dump(f))
+                        # _logger.info(f"FunctionDef: {dir(f)}")
+                        # _logger.info('\ntype_comment:\n' + f.type_comment)
+                        # parsed_comment = ast.parse(f.type_comment, mode='func_type')
+                        # _logger.info('\nWhen parsed:\n' + ast.dump(parsed_comment))
+
+                PrintFunctionTypes().visit(astmod)
+
                 raise QWebException("Error to render compiling AST", e, path, node and etree.tostring(node[0], encoding='unicode'), name)
 
         return _compiled_fn

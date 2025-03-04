@@ -339,7 +339,13 @@ class WebRequest(object):
             result = self.endpoint(*a, **kw)
             if isinstance(result, Response) and result.is_qweb:
                 # Early rendering of lazy responses to benefit from @service_model.check protection
-                result.flatten()
+                try:
+                    result.flatten()
+
+                except Exception:
+                    _logger.error("Error while rendering response", exc_info=True)
+                    # We don't want to return a Response object that will fail to render
+                    result = Response("Internal Server Error", status=500, content_type='text/plain')
             return result
 
         if self.db:
@@ -1289,7 +1295,14 @@ class DisableCacheMiddleware(object):
                 if k not in unwanted_keys:
                     new_headers.append((k, v))
 
-            start_response(status, new_headers)
+            _logger.info(f"REquest {start_response}, status: {status}, headers: {new_headers}")
+            try:
+                start_response(status, new_headers)
+
+            except Exception:
+                _logger.exception("Error in start_response", exc_info=True)
+                raise
+                
         return self.app(environ, start_wrapped)
 
 class Root(object):

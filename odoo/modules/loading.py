@@ -219,6 +219,7 @@ def load_module_graph(cr, graph, status=None, perform_checks=True,
             openupgrade_loading.compare_registries(
                 cr, package.name, upg_registry, local_registry)
             # OpenUpgrade end
+            _logger.debug(f"Loaded models: {list(model_names)} from {package.name}")
             registry.init_models(cr, model_names, {'module': package.name})
         elif package.state != 'to remove':
             # The current module has simply been loaded. The models extended by this module

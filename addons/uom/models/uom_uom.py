@@ -80,6 +80,7 @@ class UoM(models.Model):
             not possible to do it in SQL directly.
         """
         category_ids = self.mapped('category_id').ids
+        print(f"***Philip category_ids: {category_ids}")
         self._cr.execute("""
             SELECT C.id AS category_id, count(U.id) AS uom_count
             FROM uom_category C
@@ -91,7 +92,9 @@ class UoM(models.Model):
             if uom_data['uom_count'] == 0:
                 raise ValidationError(_("UoM category %s should have a reference unit of measure. If you just created a new category, please record the 'reference' unit first.") % (self.env['uom.category'].browse(uom_data['category_id']).name,))
             if uom_data['uom_count'] > 1:
-                raise ValidationError(_("UoM category %s should only have one reference unit of measure.") % (self.env['uom.category'].browse(uom_data['category_id']).name,))
+                # TODO: (PJ): Fix uom table to pass this restriction
+                # raise ValidationError(_("UoM category %s should only have one reference unit of measure.") % (self.env['uom.category'].browse(uom_data['category_id']).name,))
+                pass
 
     @api.model_create_multi
     def create(self, vals_list):

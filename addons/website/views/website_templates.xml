@@ -200,7 +200,7 @@
                     is_system: <t t-esc="json.dumps(request.env.user._is_system())"/>,
                     is_frontend: true,
                     translationURL: '/website/translations',
-                    is_website_user: <t t-esc="json.dumps(request.env.user.id == request.website.user_id.id)" />,
+                    <!-- is_website_user: <t t-esc="json.dumps(request.env.user.id == request.website.user_id.id)" />, -->
                     user_id: <t t-esc="json.dumps(request.env.user.id)" />
                 };
                 <t groups="website.group_website_publisher">
