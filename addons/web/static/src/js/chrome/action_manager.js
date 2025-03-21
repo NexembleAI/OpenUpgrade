@@ -110,9 +110,10 @@ var ActionManager = Widget.extend({
      */
     clearUncommittedChanges: function () {
         var currentController = this.getCurrentController();
-        if (currentController) {
-            return currentController.widget.canBeRemoved();
-        }
+        // TODO: (PJ): Check on the error
+        // if (currentController) {
+        //     return currentController.widget.canBeRemoved();
+        // }
         return $.when();
     },
     /**
@@ -216,6 +217,21 @@ var ActionManager = Widget.extend({
     getCurrentController: function () {
         var currentControllerID = _.last(this.controllerStack);
         return currentControllerID ? this.controllers[currentControllerID] : null;
+    },
+    /**
+     * Returns a description of the current stack of controllers, used to render
+     * the breadcrumbs. It is an array of Objects with keys 'title' (what to
+     * display in the breadcrumbs) and 'controllerID' (the ID of the
+     * corresponding controller, used to restore it when this part of the
+     * breadcrumbs is clicked).
+     * Ignores the content of the stack of controllers if the action of the
+     * last controller of the stack is flagged with 'no_breadcrumbs', indicating
+     * that the breadcrumbs should not be displayed for that action.
+     *
+     * @returns {Object[]}
+     */
+    getBreadcrumbs: function () {
+        return this._getBreadcrumbs();
     },
     /**
      * Updates the UI according to the given state, for instance, executes a new

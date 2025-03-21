@@ -65,7 +65,7 @@ class ResourceMixin(models.AbstractModel):
             quantity of working time expressed as days and as hours.
         """
         resource = self.resource_id
-        calendar = calendar or self.resource_calendar_id
+        calendar = calendar or self.resource_calendar_id or self.env['res.company']._company_default_get().resource_calendar_id
 
         # naive datetimes are made explicit in UTC
         if not from_datetime.tzinfo:

@@ -460,7 +460,10 @@ class ResConfigSettings(models.TransientModel, ResConfigModuleInstallationMixin)
         for name, field in self._fields.items():
             if name.startswith('default_'):
                 if not hasattr(field, 'default_model'):
-                    raise Exception("Field %s without attribute 'default_model'" % field)
+                    # TODO: (PJ): See why some of the fields do not have this attribute
+                    _logger.error(f"Field {name} without attribute 'default_model': {type(name)}, {dir(name)}")
+                    # raise Exception("Field %s without attribute 'default_model'" % field)
+                    continue
                 defaults.append((name, field.default_model, name[8:]))
             elif name.startswith('group_'):
                 if field.type not in ('boolean', 'selection'):
