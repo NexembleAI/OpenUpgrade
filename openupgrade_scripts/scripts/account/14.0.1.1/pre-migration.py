@@ -1,6 +1,9 @@
 # Copyright 2021 ForgeFlow S.L.  <https://www.forgeflow.com>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
+import logging
 from openupgradelib import openupgrade
+
+_logger = logging.getLogger(__name__)
 
 
 def convert_fields(env):
@@ -697,6 +700,84 @@ def fill_partial_reconcile_currency(env):
     )
 
 
+# Fix company_id mismatches
+def fix_company_id_mismatches(env):
+    # TODO: (PJ): Fix company id mismatch in account_journal
+    
+    # Fix account_payment company_id mismatch by creatung a new partner with the correct company_id
+    partner_list = {}
+    # Currently in synergy the company_id mismatch was bewteen account_payment and res_partner
+    # Did not find a mismatch between account_payment and account_journal
+    env.cr.execute(
+        """
+        SELECT ap.id, ap.company_id, ap.partner_id, rp.company_id, rp.name FROM account_payment ap
+        LEFT JOIN res_partner rp ON ap.partner_id = rp.id
+        WHERE ap.company_id != rp.company_id
+        """
+    )
+    for ap_id, ap_company_id, ap_partner_id, rp_company_id, rp_name in env.cr.fetchall():
+        _logger.info(f"Found company mismatch for account_payment {ap_id} ({ap_company_id}) with partner {ap_partner_id} ({rp_company_id})")
+        # Check if the parter with company_id is already present in the list
+        partner_id = None
+        if rp_name in partner_list and ap_company_id in partner_list[rp_name]:
+            partner_id = partner_list[rp_name][ap_company_id]
+
+        else:
+            env.cr.execute(
+                """
+                SELECT id from res_partner WHERE name = %s AND company_id = %s
+                """, (rp_name, ap_company_id)
+            )
+            partner_id = env.cr.fetchone()
+            if partner_id:
+                if rp_name not in partner_list:
+                    partner_list[rp_name] = {}
+
+                partner_list[rp_name][ap_company_id] = partner_id[0]
+                partner_id = partner_id[0]
+
+            else:
+                env.cr.execute(
+                    """
+                    INSERT INTO res_partner (
+                        name, company_id, display_name, date, title, parent_id, ref,
+                        lang, tz, user_id, vat, website, comment, active, employee,
+                        function, type, street, street2, zip, city, state_id, country_id,
+                        email, phone, mobile, is_company, industry_id,
+                        color, partner_share, commercial_partner_id, commercial_company_name,
+                        commercial_partner_country_id, company_name, team_id, trn_no,
+                        fax, country_group_id, signature, website_description, website_short_description, 
+                        website_meta_title, website_meta_description, website_meta_keywords, is_published,
+                        message_main_attachment_id, partner_gid, additional_info, website_id, website_meta_og_img,
+                        partner_latitude, partner_longitude, customer_rank, supplier_rank
+                    )
+                    SELECT
+                        name, {}, display_name, date, title, parent_id, ref,
+                        lang, tz, user_id, vat, website, comment, active, employee,
+                        function, type, street, street2, zip, city, state_id, country_id,
+                        email, phone, mobile, is_company, industry_id,
+                        color, partner_share, commercial_partner_id, commercial_company_name,
+                        commercial_partner_country_id, company_name, team_id, trn_no,
+                        fax, country_group_id, signature, website_description, website_short_description, 
+                        website_meta_title, website_meta_description, website_meta_keywords, is_published,
+                        message_main_attachment_id, partner_gid, additional_info, website_id, website_meta_og_img,
+                        partner_latitude, partner_longitude, customer_rank, supplier_rank
+                    FROM res_partner WHERE id = {}
+                    RETURNING id
+                    """.format(ap_company_id, ap_partner_id)
+                )
+                partner_id = env.cr.fetchone()[0]
+                if rp_name not in partner_list:
+                    partner_list[rp_name] = {}
+
+                partner_list[rp_name][ap_company_id] = partner_id
+
+        env.cr.execute(
+            "UPDATE account_payment SET partner_id = %s WHERE id = %s",
+            (partner_id, ap_id),
+        )
+
+
 @openupgrade.migrate()
 def migrate(env, version):
     openupgrade.set_xml_ids_noupdate_value(
@@ -731,3 +812,5 @@ def migrate(env, version):
     openupgrade.logged_query(
         env.cr, "DROP VIEW IF EXISTS account_invoice_report CASCADE"
     )
+    fix_company_id_mismatches(env)
+
