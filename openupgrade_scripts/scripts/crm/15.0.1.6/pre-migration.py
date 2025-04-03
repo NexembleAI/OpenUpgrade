@@ -8,7 +8,7 @@ def migrate(env, version):
         env.cr,
         """
         ALTER TABLE crm_team_member
-        ADD COLUMN assignment_max INTEGER DEFAULT 30;
+        ADD COLUMN IF NOT EXISTS assignment_max INTEGER DEFAULT 30;
         ALTER TABLE crm_team_member ALTER COLUMN assignment_max DROP DEFAULT;
         """,
     )
