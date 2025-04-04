@@ -37,11 +37,27 @@ _new_fields = [
     ),
 ]
 
+_fields_renames = [
+    (
+        "hr.leave",
+        "hr.leave",
+        "manager_id",
+        "manager_name",
+    ),
+    (
+        "hr.leave.allocation",
+        "hr.leave.allocation",
+        "manager_id",
+        "manager_name",
+    ),
+]
+
 
 @openupgrade.migrate()
 def migrate(env, version):
     openupgrade.rename_xmlids(env.cr, _xmlid_renames)
     openupgrade.add_fields(env, _new_fields)
+    openupgrade.rename_fields(env, _fields_renames)
     # Backup Many2many relation between hr.plan and hr.plan.activity.type
     openupgrade.remove_tables_fks(env.cr, ["hr_plan_hr_plan_activity_type_rel"])
     # get_legacy_name cannot be used here, as there is a length limit in table name,
