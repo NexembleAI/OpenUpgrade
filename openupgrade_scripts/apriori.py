@@ -10,6 +10,18 @@ renamed_modules = {
     "website_sale_picking": "website_sale_collect",
     "website_form_project": "website_project",
     # odoo/enterprise
+    # OCA/product-attribute
+    "product_packaging_type_vendor": "product_packaging_level_vendor",
+    "product_supplierinfo_for_customer": "product_customerinfo",
+    "product_template_tags_code": "product_tags_code",
+    "stock_packaging_calculator": "product_packaging_calculator",
+    # OCA/sale-workflow
+    "product_supplierinfo_for_customer_sale": "product_customerinfo_sale",
+    "sale_product_set_sale_by_packaging": "product_set_sell_only_by_packaging",
+    # OCA/stock-logistics-workflow
+    "stock_picking_type_shipping_policy": "stock_picking_type_force_move_type",
+    # OCA/web
+    "web_widget_product_label_section_and_note": "web_widget_product_label_section_and_note_name_visibility",  # noqa: E501
     # OCA/...
 }
 
@@ -35,7 +47,6 @@ merged_modules = {
     "payment_sips": "payment_worldline",
     "pos_sale_product_configurator": "pos_sale",
     "sale_product_configurator": "sale",
-    "spreadsheet_dashboard_purchase": "spreadsheet_dashboard_purchase_stock",
     "stock_landed_costs_company": "stock_landed_costs",
     "website_sale_product_configurator": "website_sale",
     # odoo/enterprise
@@ -49,9 +60,10 @@ merged_modules = {
 # only used here for upgrade_analysis
 renamed_models = {
     # odoo
+    "hr.applicant.skill": "hr.candidate.skill",
     "l10n_es_edi_facturae_adm_centers.ac_role_type": ""
     "l10n_es_edi_facturae.ac_role_type",
-    "mail.notification.web.push": "web.push",
+    "mail.notification.web.push": "mail.push",
     "mail.partner.device": "mail.push.device",
     "mail.shortcode": "mail.canned.response",
     "pos.combo": "product.combo",
@@ -62,5 +74,10 @@ renamed_models = {
 # only used here for upgrade_analysis
 merged_models = {
     # odoo
+    "google.calendar.credentials": "res.users.settings",
+    "l10n_es_edi_facturae.certificate": "certificate.certificate",
+    "l10n_es_edi.certificate": "certificate.certificate",
+    "microsoft.calendar.credentials": "res.users.settings",
+    "mrp.document": "product.document",
     # OCA/...
 }
