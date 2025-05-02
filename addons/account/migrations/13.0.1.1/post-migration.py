@@ -118,8 +118,18 @@ def fill_account_journal_invoice_reference_type(env):
 
 def migration_invoice_moves(env):
     # Transfer fields from invoices to linked moves
+    ai_custom_columns = ['journal_id', 'amount_total_words', 'sale_order_id', 'do_id',
+                      'purchase_ref', 'account_analytic_lines', 'amount_total_currency',
+                      'purchase_order_ids', 'landed_cost_id']
+    am_columns = ""
+    ai_columns = ""
+    for column in ai_custom_columns:
+        if openupgrade.column_exists(env.cr, 'account_invoice', column):
+            am_columns += ", " + column
+            ai_columns += ", ai." + openupgrade.get_legacy_name(column)
+
     openupgrade.logged_query(
-        env.cr, """
+        env.cr, f"""
         UPDATE account_move am
         SET (message_main_attachment_id, access_token, name, date, ref,
         narration, type, journal_id, company_id, currency_id, partner_id,
@@ -131,7 +141,7 @@ def migration_invoice_moves(env):
         invoice_payment_term_id, invoice_partner_bank_id, invoice_incoterm_id,
         invoice_source_email, invoice_partner_display_name,
         invoice_cash_rounding_id, create_uid, create_date, write_uid,
-        write_date) = (
+        write_date{am_columns}) = (
         ai.message_main_attachment_id, ai.access_token,
         COALESCE(ai.number, ai.move_name, am.name), COALESCE(ai.date, am.date),
         CASE WHEN ai.type IN ('in_invoice', 'in_refund') THEN ai.reference ELSE ai.name END,
@@ -158,14 +168,14 @@ def migration_invoice_moves(env):
             ELSE COALESCE(ai.reference, ai.number) END,
         ai.sent, ai.origin, ai.payment_term_id, ai.partner_bank_id, ai.incoterm_id,
         ai.source_email, ai.vendor_display_name, ai.cash_rounding_id,
-        ai.create_uid, ai.create_date, ai.write_uid, ai.write_date)
+        ai.create_uid, ai.create_date, ai.write_uid, ai.write_date{ai_columns})
         FROM account_invoice ai
         WHERE am.id = ai.move_id AND ai.state not in ('draft', 'cancel')
         """,
     )
     # Insert moves for draft or canceled invoices
     openupgrade.logged_query(
-        env.cr, """
+        env.cr, f"""
         INSERT INTO account_move (message_main_attachment_id, access_token,
         name, date, ref, narration, type, journal_id, company_id, currency_id,
         partner_id, commercial_partner_id, amount_untaxed, amount_tax,
@@ -176,7 +186,7 @@ def migration_invoice_moves(env):
         invoice_origin, invoice_payment_term_id, invoice_partner_bank_id,
         invoice_incoterm_id, invoice_source_email,
         invoice_partner_display_name, invoice_cash_rounding_id, old_invoice_id,
-        create_uid, create_date, write_uid, write_date)
+        create_uid, create_date, write_uid, write_date{am_columns})
         SELECT message_main_attachment_id, access_token,
         COALESCE(NULLIF(number, ''), NULLIF(move_name, ''), '/'),
         COALESCE(date, date_invoice, write_date),
@@ -199,11 +209,21 @@ def migration_invoice_moves(env):
         CASE WHEN type IN ('in_invoice', 'in_refund') THEN name ELSE COALESCE(reference, number) END,
         sent, origin, payment_term_id, partner_bank_id, incoterm_id, source_email,
         vendor_display_name, cash_rounding_id, id, create_uid, create_date,
-        write_uid, write_date
+        write_uid, write_date{ai_columns}
         FROM account_invoice ai
         WHERE ai.state in ('draft', 'cancel')""",
     )
     openupgrade.merge_models(env.cr, 'account.invoice', 'account.move', 'old_invoice_id')
+    ail_custom_columns = ['price_tax', 'cost_line_id']
+    aml_columns = ""
+    ail_columns = ""
+    aml_update = ""
+    for column in ail_custom_columns:
+        if openupgrade.column_exists(env.cr, 'account_invoice_line', column):
+            aml_columns += ", " + column
+            ail_columns += ", ail." + openupgrade.get_legacy_name(column)
+            aml_update += f', {column}=ail.{openupgrade.get_legacy_name(column)}'
+
     # Not Draft or Cancel Invoice Lines
     # 1st: update the ungrouped ones
     openupgrade.logged_query(env.cr, "ALTER TABLE account_invoice_line ADD aml_matched BOOLEAN")
@@ -230,7 +250,7 @@ def migration_invoice_moves(env):
         price_unit = ail.price_unit, discount = ail.discount, price_subtotal = ail.price_subtotal,
         price_total = ail.price_total, display_type = ail.display_type,
         is_rounding_line = ail.is_rounding_line, old_invoice_line_id = ail.id,
-        create_uid = ail.create_uid, create_date = ail.create_date
+        create_uid = ail.create_uid, create_date = ail.create_date{aml_update}
         FROM matches
         JOIN account_invoice_line ail ON matches.ail_id = ail.id
         WHERE matches.aml_id = aml.id
@@ -260,7 +280,8 @@ def migration_invoice_moves(env):
             AND ail.account_id = aml.account_id
             AND ai.commercial_partner_id = aml.partner_id
             AND ((ail.account_analytic_id IS NULL AND aml.analytic_account_id IS NULL)
-                OR ail.account_analytic_id = aml.analytic_account_id)"""))
+                OR ail.account_analytic_id = aml.analytic_account_id)"""),),
+            aml_update=aml_update
         ),
     )
     # Try now with a more relaxed criteria, as it's possible that users change some data on amls
@@ -269,15 +290,16 @@ def migration_invoice_moves(env):
         query.format(
             where=sql.SQL(minimal_where + """
             AND rc.anglo_saxon_accounting IS DISTINCT FROM TRUE
-            AND aml.old_invoice_line_id IS NULL"""))
+            AND aml.old_invoice_line_id IS NULL""")),
+            aml_update=aml_update
     )
     # 2st: exclude from invoice_tab the grouped ones
     openupgrade.logged_query(
-        env.cr, """
+        env.cr, f"""
         UPDATE account_move_line aml
         SET exclude_from_invoice_tab = TRUE, sequence = ail.sequence,
         name = '(OLD GROUPED ITEM)' || aml.name,
-        create_uid = ail.create_uid, create_date = ail.create_date
+        create_uid = ail.create_uid, create_date = ail.create_date{aml_update}
         FROM account_invoice_line ail
             JOIN account_invoice ai ON ail.invoice_id = ai.id AND ai.state NOT IN ('draft', 'cancel')
             JOIN account_move am ON ail.invoice_id = am.old_invoice_id
@@ -304,13 +326,13 @@ def migration_invoice_moves(env):
     )
     # 4th. Adding all the missing lines
     openupgrade.logged_query(
-        env.cr, """
+        env.cr, f"""
         INSERT INTO account_move_line (company_id, journal_id, account_id,
         exclude_from_invoice_tab, sequence, name, quantity, price_unit, discount,
         price_subtotal, price_total, company_currency_id, currency_id, partner_id, product_uom_id,
         product_id, analytic_account_id, display_type, is_rounding_line,
         move_id, old_invoice_line_id, date, create_uid, create_date, write_uid,
-        write_date, parent_state, move_name, credit, debit, balance)
+        write_date, parent_state, move_name, credit, debit, balance{aml_columns})
         SELECT ail.company_id, am.journal_id, ail.account_id, FALSE, ail.sequence, ail.name,
         ail.quantity, ail.price_unit, ail.discount, ail.price_subtotal,
         ail.price_total, rc.currency_id, CASE WHEN rc.currency_id != ail.currency_id
@@ -318,7 +340,7 @@ def migration_invoice_moves(env):
         ail.product_id, ail.account_analytic_id, ail.display_type,
         ail.is_rounding_line, COALESCE(ai.move_id, am.id), ail.id, COALESCE(ai.date, ai.date_invoice),
         ail.create_uid, ail.create_date, ail.write_uid, ail.write_date, am.state, am.name,
-        0.0, 0.0, 0.0
+        0.0, 0.0, 0.0{ail_columns}
         FROM account_invoice_line ail
             JOIN account_invoice ai ON ail.invoice_id = ai.id
             JOIN account_move am ON am.old_invoice_id = ai.id
@@ -333,7 +355,7 @@ def migration_invoice_moves(env):
         price_subtotal, price_total, company_currency_id, currency_id, partner_id, product_uom_id,
         product_id, analytic_account_id, display_type, is_rounding_line,
         move_id, old_invoice_line_id, date, create_uid, create_date, write_uid,
-        write_date, parent_state, move_name, credit, debit, balance)
+        write_date, parent_state, move_name, credit, debit, balance{aml_columns})
         SELECT ail.company_id, am.journal_id, ail.account_id, FALSE, ail.sequence, ail.name,
         ail.quantity, ail.price_unit, ail.discount, ail.price_subtotal,
         ail.price_total, rc.currency_id, CASE WHEN rc.currency_id != ail.currency_id
@@ -341,7 +363,7 @@ def migration_invoice_moves(env):
         ail.product_id, ail.account_analytic_id, ail.display_type,
         ail.is_rounding_line, COALESCE(ai.move_id, am.id), ail.id, COALESCE(ai.date, ai.date_invoice),
         ail.create_uid, ail.create_date, ail.write_uid, ail.write_date, am.state, am.name,
-        0.0, 0.0, 0.0
+        0.0, 0.0, 0.0{ail_columns}
         FROM account_invoice_line ail
             JOIN account_invoice ai ON ail.invoice_id = ai.id AND ai.state IN ('draft', 'cancel')
             LEFT JOIN res_company rc ON ail.company_id = rc.id
@@ -350,6 +372,14 @@ def migration_invoice_moves(env):
         WHERE aa.internal_type in ('receivable', 'payable')""",
     )
     openupgrade.merge_models(env.cr, 'account.invoice.line', 'account.move.line', 'old_invoice_line_id')
+    ait_custom_columns = ['journal_voucher_id']
+    aml_columns = ""
+    ait_columns = ""
+    for column in ailtcustom_columns:
+        if openupgrade.column_exists(env.cr, 'account_invoice_tax', column):
+            aml_columns += ", " + column
+            ait_columns += ", ait." + openupgrade.get_legacy_name(column)
+
     # Not Draft or Cancel Invoice Taxes
     openupgrade.logged_query(
         env.cr, """
@@ -372,12 +402,12 @@ def migration_invoice_moves(env):
         sequence, name, price_unit, currency_id, tax_base_amount,
         tax_line_id, analytic_account_id, move_id, old_invoice_tax_id,
         exclude_from_invoice_tab, parent_state, quantity, partner_id, date,
-        create_uid, create_date, write_uid, write_date, move_name, credit, debit, balance)
+        create_uid, create_date, write_uid, write_date, move_name, credit, debit, balance{aml_columns})
         SELECT ait.company_id, am.journal_id, ait.account_id, ait.sequence, ait.name,
         ait.amount, ait.currency_id, ait.base, ait.tax_id,
         ait.account_analytic_id, COALESCE(ai.move_id, am.id),
         ait.id, TRUE, COALESCE(am.state, ai.state), 1.0, ai.commercial_partner_id, COALESCE(ai.date, ai.date_invoice),
-        ait.create_uid, ait.create_date, ait.write_uid, ait.write_date, am.name, 0.0, 0.0, 0.0
+        ait.create_uid, ait.create_date, ait.write_uid, ait.write_date, am.name, 0.0, 0.0, 0.0{ait_columns}
         FROM account_invoice_tax ait
         JOIN account_invoice ai ON ait.invoice_id = ai.id AND ai.state IN ('draft', 'cancel')
         LEFT JOIN account_move am ON am.old_invoice_id = ai.id
