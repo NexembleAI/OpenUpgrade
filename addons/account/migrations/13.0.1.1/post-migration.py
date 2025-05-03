@@ -119,14 +119,14 @@ def fill_account_journal_invoice_reference_type(env):
 def migration_invoice_moves(env):
     # Transfer fields from invoices to linked moves
     ai_custom_columns = ['journal_id', 'amount_total_words', 'sale_order_id', 'do_id',
-                      'purchase_ref', 'account_analytic_lines', 'amount_total_currency',
-                      'purchase_order_ids', 'landed_cost_id']
+                         'purchase_ref', 'account_analytic_lines', 'amount_total_currency',
+                         'purchase_order_ids', 'landed_cost_id']
     am_columns = ""
     ai_columns = ""
     for column in ai_custom_columns:
         if openupgrade.column_exists(env.cr, 'account_invoice', column):
             am_columns += ", " + column
-            ai_columns += ", ai." + openupgrade.get_legacy_name(column)
+            ai_columns += ", ai." + column
 
     openupgrade.logged_query(
         env.cr, f"""
@@ -214,15 +214,15 @@ def migration_invoice_moves(env):
         WHERE ai.state in ('draft', 'cancel')""",
     )
     openupgrade.merge_models(env.cr, 'account.invoice', 'account.move', 'old_invoice_id')
-    ail_custom_columns = ['price_tax', 'cost_line_id']
+    ail_custom_columns = ['price_tax', 'cost_line_id', 'journal_voucher_id']
     aml_columns = ""
     ail_columns = ""
     aml_update = ""
     for column in ail_custom_columns:
         if openupgrade.column_exists(env.cr, 'account_invoice_line', column):
             aml_columns += ", " + column
-            ail_columns += ", ail." + openupgrade.get_legacy_name(column)
-            aml_update += f', {column}=ail.{openupgrade.get_legacy_name(column)}'
+            ail_columns += ", ail." + column
+            aml_update += f', {column}=ail.{column}'
 
     # Not Draft or Cancel Invoice Lines
     # 1st: update the ungrouped ones
@@ -375,10 +375,10 @@ def migration_invoice_moves(env):
     ait_custom_columns = ['journal_voucher_id']
     aml_columns = ""
     ait_columns = ""
-    for column in ailtcustom_columns:
+    for column in ait_custom_columns:
         if openupgrade.column_exists(env.cr, 'account_invoice_tax', column):
             aml_columns += ", " + column
-            ait_columns += ", ait." + openupgrade.get_legacy_name(column)
+            ait_columns += ", ait." + column
 
     # Not Draft or Cancel Invoice Taxes
     openupgrade.logged_query(

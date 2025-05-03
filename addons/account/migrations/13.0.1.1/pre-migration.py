@@ -314,6 +314,33 @@ def add_helper_voucher_move_rel(env):
     )
 
 
+def add_new_columns(env):
+    field_spec = []
+    custom_columns = [
+        ('journal_id', 'many2one', 'account.move', 'account.invoice'),
+        ('amount_total_words', 'char', 'account.move', 'account.invoice'),
+        ('sale_order_id', 'many2one', 'account.move', 'account.invoice'),
+        ('do_id', 'many2one', 'account.move', 'account.invoice'),
+        ('purchase_ref', 'char', 'account.move', 'account.invoice'),
+        ('account_analytic_lines', 'many2many', 'account.move', 'account.invoice'),
+        ('amount_total_currency', 'float', 'account.move', 'account.invoice'),
+        ('purchase_order_ids', 'many2one', 'account.move', 'account.invoice'),
+        ('landed_cost_id', 'many2one', 'account.move', 'account.invoice'),
+        ('price_tax', 'float', 'account.move.line', 'account.invoice.line'),
+        ('cost_line_id', 'many2one', 'account.move.line', 'account.invoice.line'),
+        ('journal_voucher_id', 'many2one', 'account.move.line', 'account.invoice.line'),
+        ('journal_voucher_id', 'many2one', 'account.move.line', 'account.invoice.tax'),
+    ]
+    for column, ty, model, old_model in custom_columns:
+        old_table = old_model.replace('.', '_')
+        if openupgrade.column_exists(env.cr, old_table, column):
+            new_table = model.replace('.', '_')
+            if not openupgrade.column_exists(env.cr, new_table, column):
+                field_spec.append(
+                    (model, column, ty)
+                )
+
+
 @openupgrade.migrate()
 def migrate(env, version):
     cr = env.cr
@@ -336,6 +363,7 @@ def migrate(env, version):
     type_change_account_fiscal_position_zips(env)
     create_account_invoice_amount_tax_company_signed(env)
     create_account_move_new_columns(env)
+    add_new_columns(env)
     fill_account_move_line(env)
     create_res_partner_ranks(env)
     delete_fk_constraints(env)
