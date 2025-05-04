@@ -345,7 +345,7 @@ def add_new_columns(env):
 
     _logger.info("Adding new columns: %s", field_spec)
     if field_spec:
-        openupgrade.add_fields(env, field_spec)
+        openupgrade.add_columns(env, field_spec)
 
 
 @openupgrade.migrate()
