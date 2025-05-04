@@ -1,9 +1,12 @@
 # Copyright 2020 ForgeFlow <http://www.forgeflow.com>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
+import logging
 from openupgradelib import openupgrade
 from odoo import fields
 from odoo.tools import sql
+
+_logger = logging.getLogger(__name__)
 
 _column_copies = {
     'res_company': [
@@ -339,6 +342,10 @@ def add_new_columns(env):
                 field_spec.append(
                     (model, column, ty)
                 )
+
+    _logger.info("Adding new columns: %s", field_spec)
+    if field_spec:
+        openupgrade.add_fields(env, field_spec)
 
 
 @openupgrade.migrate()
