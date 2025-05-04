@@ -320,7 +320,6 @@ def add_helper_voucher_move_rel(env):
 def add_new_columns(env):
     field_spec = []
     custom_columns = [
-        ('journal_id', 'many2one', 'account.move', 'account.invoice'),
         ('amount_total_words', 'char', 'account.move', 'account.invoice'),
         ('sale_order_id', 'many2one', 'account.move', 'account.invoice'),
         ('do_id', 'many2one', 'account.move', 'account.invoice'),

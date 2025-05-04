@@ -118,7 +118,7 @@ def fill_account_journal_invoice_reference_type(env):
 
 def migration_invoice_moves(env):
     # Transfer fields from invoices to linked moves
-    ai_custom_columns = ['journal_id', 'amount_total_words', 'sale_order_id', 'do_id',
+    ai_custom_columns = ['amount_total_words', 'sale_order_id', 'do_id',
                          'purchase_ref', 'account_analytic_lines', 'amount_total_currency',
                          'purchase_order_ids', 'landed_cost_id']
     am_columns = ""
