@@ -222,11 +222,22 @@ def migration_invoice_moves(env):
         if openupgrade.column_exists(env.cr, 'account_invoice_line', column):
             aml_columns += ", " + column
             ail_columns += ", ail." + column
-            aml_update += f', {column}=ail.{column}'
+            aml_update += f', {column} = ail.{column}'
 
     # Not Draft or Cancel Invoice Lines
     # 1st: update the ungrouped ones
     openupgrade.logged_query(env.cr, "ALTER TABLE account_invoice_line ADD aml_matched BOOLEAN")
+    sub = """
+        UPDATE account_move_line aml
+        SET exclude_from_invoice_tab = FALSE, sequence = ail.sequence, name = ail.name,
+        price_unit = ail.price_unit, discount = ail.discount, price_subtotal = ail.price_subtotal,
+        price_total = ail.price_total, display_type = ail.display_type,
+        is_rounding_line = ail.is_rounding_line, old_invoice_line_id = ail.id,
+        create_uid = ail.create_uid, create_date = ail.create_date{aml_update}
+        FROM matches
+        JOIN account_invoice_line ail ON matches.ail_id = ail.id
+        WHERE matches.aml_id = aml.id
+        RETURNING ail.id""".format(aml_update=aml_update)
     query = sql.SQL("""
     WITH matches AS (
         SELECT unnest(amls) as aml_id, unnest(ails) as ail_id
@@ -245,16 +256,7 @@ def migration_invoice_moves(env):
             GROUP BY ails
         ) group_by_ail
     ), sub AS (
-        UPDATE account_move_line aml
-        SET exclude_from_invoice_tab = FALSE, sequence = ail.sequence, name = ail.name,
-        price_unit = ail.price_unit, discount = ail.discount, price_subtotal = ail.price_subtotal,
-        price_total = ail.price_total, display_type = ail.display_type,
-        is_rounding_line = ail.is_rounding_line, old_invoice_line_id = ail.id,
-        create_uid = ail.create_uid, create_date = ail.create_date{aml_update}
-        FROM matches
-        JOIN account_invoice_line ail ON matches.ail_id = ail.id
-        WHERE matches.aml_id = aml.id
-        RETURNING ail.id
+        {sub}
     )
     UPDATE account_invoice_line ail_main
     SET aml_matched = True
@@ -280,8 +282,8 @@ def migration_invoice_moves(env):
             AND ail.account_id = aml.account_id
             AND ai.commercial_partner_id = aml.partner_id
             AND ((ail.account_analytic_id IS NULL AND aml.analytic_account_id IS NULL)
-                OR ail.account_analytic_id = aml.analytic_account_id)"""),),
-            aml_update=aml_update
+                OR ail.account_analytic_id = aml.analytic_account_id)""")),
+            sub=(sql.SQL(sub))
         ),
     )
     # Try now with a more relaxed criteria, as it's possible that users change some data on amls
@@ -290,8 +292,9 @@ def migration_invoice_moves(env):
         query.format(
             where=sql.SQL(minimal_where + """
             AND rc.anglo_saxon_accounting IS DISTINCT FROM TRUE
-            AND aml.old_invoice_line_id IS NULL""")),
-            aml_update=aml_update
+            AND aml.old_invoice_line_id IS NULL"""),
+            sub=(sql.SQL(sub))
+        ),
     )
     # 2st: exclude from invoice_tab the grouped ones
     openupgrade.logged_query(
@@ -349,7 +352,7 @@ def migration_invoice_moves(env):
     )
     # Draft or Cancel Invoice Lines
     openupgrade.logged_query(
-        env.cr, """
+        env.cr, f"""
         INSERT INTO account_move_line (company_id, journal_id, account_id,
         exclude_from_invoice_tab, sequence, name, quantity, price_unit, discount,
         price_subtotal, price_total, company_currency_id, currency_id, partner_id, product_uom_id,
@@ -397,7 +400,7 @@ def migration_invoice_moves(env):
     )
     # Draft or Cancel Invoice Taxes
     openupgrade.logged_query(
-        env.cr, """
+        env.cr, f"""
         INSERT INTO account_move_line (company_id, journal_id, account_id,
         sequence, name, price_unit, currency_id, tax_base_amount,
         tax_line_id, analytic_account_id, move_id, old_invoice_tax_id,
