@@ -31,9 +31,10 @@ def map_pricing_type(env):
 
 @openupgrade.migrate()
 def migrate(env, version):
-    openupgrade.copy_columns(env.cr, _column_copies)
-    openupgrade.rename_fields(env, _field_renames)
-    map_pricing_type(env)
-    openupgrade.logged_query(
-        env.cr, "ALTER TABLE project_project ADD timesheet_product_id int4"
-    )
+    if openupgrade.column_exists(env.cr, "project_project", "billable_type"):
+        openupgrade.copy_columns(env.cr, _column_copies)
+        openupgrade.rename_fields(env, _field_renames)
+        map_pricing_type(env)
+        openupgrade.logged_query(
+            env.cr, "ALTER TABLE project_project ADD timesheet_product_id int4"
+        )
