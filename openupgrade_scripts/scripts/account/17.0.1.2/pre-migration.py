@@ -2,8 +2,6 @@
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 from openupgradelib import openupgrade
 
-from odoo.tools.sql import convert_column_translatable
-
 _fields_renames = [
     (
         "res.company",
@@ -73,7 +71,6 @@ def _convert_account_tax_description(env):
     openupgrade.rename_columns(
         env.cr, {"account_tax": [("description", "invoice_label")]}
     )
-    convert_column_translatable(env.cr, "account_tax", "invoice_label", "jsonb")
 
 
 def _am_create_delivery_date_column(env):
@@ -198,6 +195,26 @@ def _pre_create_early_pay_discount_computation(env):
     )
 
 
+def _pre_account_move_line_invoice_date_computation(env):
+    """Avoid triggering the computed method"""
+    openupgrade.logged_query(
+        env.cr,
+        """
+        ALTER TABLE account_move_line
+        ADD COLUMN IF NOT EXISTS invoice_date DATE;
+        """,
+    )
+    openupgrade.logged_query(
+        env.cr,
+        """
+        UPDATE account_move_line aml
+        SET invoice_date = am.invoice_date
+        FROM account_move am
+        WHERE am.invoice_date IS NOT NULL AND aml.move_id = am.id;
+        """,
+    )
+
+
 def _decouple_obsolete_tables(env):
     """
     Remove all foreign keys held by and pointed to template tables
@@ -283,6 +300,7 @@ def migrate(env, version):
     _account_report_update_figure_type(env)
     _account_tax_repartition_line_merge_repartition_lines_m2o(env)
     _pre_create_early_pay_discount_computation(env)
+    _pre_account_move_line_invoice_date_computation(env)
     _decouple_obsolete_tables(env)
     _pre_create_account_report_active(env)
     _remove_obsolete_constraints(env)

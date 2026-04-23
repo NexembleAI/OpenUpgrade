@@ -10,6 +10,10 @@ renamed_modules = {
     # odoo/enterprise
     # OCA/delivery-carrier
     "delivery_carrier_customer_info": "partner_delivery_info",
+    # OCA/l10n-spain
+    "l10n_es_pos": "l10n_es_pos_oca",
+    # OCA/server-tools
+    "mail_template_attachment_i18n": "mail_template_attachment_per_lang",
     # OCA/social
     "mail_activity_unlink_log": "mail_activity_cancel_tracking",
 }
@@ -61,11 +65,20 @@ merged_modules = {
     "maintenance_plan": "maintenance",
     "maintenance_plan_activity": "maintenance",
     "maintenance_plan_employee": "maintenance",
+    # OCA/product-attribute
+    "product_catalog": "product",
+    "product_catalog_sale": "sale",
     # OCA/purchase-workflow
     "purchase_discount": "purchase",
+    # OCA/sale-promotion
+    "loyalty_initial_date_validity": "loyalty",
+    "sale_loyalty_initial_date_validity": "sale_loyalty",
+    # OCA/sale-reporting
+    "sale_report_country_state": "sale",
     # OCA/social
     "mail_activity_plan": "mail",
     "mass_mailing_custom_unsubscribe_event": "mass_mailing",
+    "mail_template_multi_attachment": "mail",
     # OCA/stock-logistics-warehouse
     "stock_lot_filter_available": "stock",
     # OCA/web
