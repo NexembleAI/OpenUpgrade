@@ -10,6 +10,10 @@ _renamed_xmlids = [
         "base.lang_sr_RS",
         "base.lang_sr@Cyrl",
     ),
+    (
+        "spreadsheet_dashboard.dashboard_management",
+        "base.module_category_productivity_dashboard",
+    ),
 ]
 
 
@@ -21,6 +25,21 @@ def _fix_list_view_type(cr):
     in the log
     """
     openupgrade.logged_query(cr, "UPDATE ir_ui_view SET type='list' WHERE type='tree'")
+
+
+def _fix_list_view_mode(cr):
+    """
+    Previous actions had a default value of tree,form, but now the default is list,form.
+    If any records do not define this field explicitly,
+    the default value from the previous version is kept, which causes an error.
+    """
+    openupgrade.logged_query(
+        cr,
+        r"""UPDATE ir_act_window
+            SET view_mode = REGEXP_REPLACE(view_mode, '(^|,)tree(,|$)', '\1list\2', 'g')
+        WHERE view_mode ~ '(^|,)tree(,|$)'
+        """,
+    )
 
 
 def _fix_serbian_res_lang_record(cr):
@@ -45,10 +64,30 @@ def _fix_company_layout_background(cr):
 
 @openupgrade.migrate(use_env=False)
 def migrate(cr, version):
+    openupgrade.logged_query(
+        cr,
+        f"""
+        CREATE TABLE {openupgrade.get_legacy_name("ir_module_module")
+            } AS (SELECT name, state FROM ir_module_module);
+        """,
+    )
     openupgrade.update_module_names(cr, renamed_modules.items())
     openupgrade.update_module_names(cr, merged_modules.items(), merge_modules=True)
     openupgrade.clean_transient_models(cr)
     openupgrade.rename_xmlids(cr, _renamed_xmlids)
+    openupgrade.copy_columns(
+        cr,
+        {"ir_act_window_view": [("view_mode", None, None)]},
+    )
+    old_column = openupgrade.get_legacy_name("view_mode")
+    openupgrade.map_values(
+        cr,
+        old_column,
+        "view_mode",
+        [("tree", "list")],
+        table="ir_act_window_view",
+    )
     _fix_list_view_type(cr)
+    _fix_list_view_mode(cr)
     _fix_serbian_res_lang_record(cr)
     _fix_company_layout_background(cr)

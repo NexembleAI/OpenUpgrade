@@ -52,7 +52,9 @@
     <field name="iso_numeric">060</field>
   </record>
   <record id="BND" model="res.currency">
+    <field name="symbol">B$</field>
     <field name="iso_numeric">096</field>
+    <field name="position">before</field>
   </record>
   <record id="BOB" model="res.currency">
     <field name="iso_numeric">068</field>
@@ -502,6 +504,15 @@
   <record id="ZMW" model="res.currency">
     <field name="iso_numeric">967</field>
   </record>
+  <record id="bn" model="res.country">
+    <field eval="'%(street)s\n%(street2)s\n%(city)s %(zip)s\n%(country_name)s'" name="address_format"/>
+  </record>
+  <record id="cw" model="res.country">
+    <field name="currency_id" ref="XCG"/>
+  </record>
+  <record id="om" model="res.country">
+    <field name="address_format" eval="'%(street)s\n%(street2)s\n%(city)s %(state_name)s %(zip)s\n%(country_name)s'"/>
+  </record>
   <record id="pa" model="res.country">
     <field name="vat_label">RUC</field>
   </record>
@@ -522,5 +533,8 @@
   </record>
   <record id="pk" model="res.country">
     <field name="vat_label">NTN</field>
+  </record>
+  <record id="sx" model="res.country">
+    <field name="currency_id" ref="XCG"/>
   </record>
 </odoo>
