@@ -86,3 +86,8 @@ docs/_build/
 
 # OCA rules
 !static/lib/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
