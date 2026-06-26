@@ -12,6 +12,8 @@ renamed_modules = {
     "website_sale_picking": "website_sale_collect",
     "website_form_project": "website_project",
     # odoo/enterprise
+    # OCA/account-reconcile
+    "account_reconciliation_widget_due_date": "account_reconcile_due_date",
     # OCA/commission
     "account_commission": "account_commission_oca",
     "commission": "commission_oca",
@@ -24,7 +26,6 @@ renamed_modules = {
     "pdf_helper": "pdf_xml_attachment",
     # OCA/l10n-italy
     "account_vat_period_end_statement": "l10n_it_account_vat_period_end_settlement",
-    "l10n_it_riba": "l10n_it_riba_oca",
     "l10n_it_vat_statement_communication": "l10n_it_vat_settlement_communication",
     # OCA/product-attribute
     "product_packaging_type_vendor": "product_packaging_level_vendor",
@@ -92,6 +93,7 @@ merged_modules = {
     "l10n_fr_pos_cert_update_draft_order_line": "l10n_fr_pos_cert",
     # OCA/sale-workflow
     "sale_order_qty_change_no_recompute": "sale",
+    "sale_partner_shipping_invoice_domain": "sale_commercial_partner",
     # OCA/server-brand
     "hr_expense_remove_mobile_link": "hr_expense",
     # OCA/stock-logistics-workflow
