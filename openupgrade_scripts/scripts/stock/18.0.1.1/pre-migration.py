@@ -7,7 +7,7 @@ _columns_copy = {
 }
 
 _field_renames = [
-    # ("stock.move", "stock_move", "location_dest_id", "location_final_id"),
+    ("stock.move", "stock_move", "location_dest_id", "location_final_id"),
     (
         "stock.warehouse.orderpoint",
         "stock_warehouse_orderpoint",
